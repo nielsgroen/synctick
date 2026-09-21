@@ -48,7 +48,7 @@ panics terminate the worker without guaranteed cleanup.
 
 Tests cover hash/codec golden bytes, malformed traffic, packet loss, startup
 readiness, cancellation, recording failures, and example host/client/replay
-parity. CI adds separate Linux/macOS/Windows runs. Sustained sessions between
+parity. CI runs on Ubuntu only. Sustained sessions between
 heterogeneous operating systems and CPUs remain an additional validation task;
 local passing tests alone do not establish cross-platform determinism.
 

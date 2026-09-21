@@ -59,7 +59,7 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-CI runs workspace and aliased-consumer tests on Linux, macOS, and Windows.
+CI runs workspace and aliased-consumer tests on Ubuntu only.
 Successful local tests do not establish mixed-platform session determinism.
 
 ## Provenance and compatibility
