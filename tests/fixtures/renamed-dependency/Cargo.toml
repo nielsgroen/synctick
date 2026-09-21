@@ -1,0 +1,12 @@
+[package]
+name = "synctick-aliased-consumer"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.92"
+publish = false
+
+# Standalone consumer: deliberately outside the parent workspace.
+[workspace]
+
+[dependencies]
+sync = { package = "synctick", path = "../../../crates/synctick" }

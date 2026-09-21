@@ -1,0 +1,13 @@
+[package]
+name = "synctick-bevy"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+[dependencies]
+synctick = { path = "../synctick" }
+bevy_app = "0.18.1"
+bevy_ecs = "0.18.1"
+[lints]
+workspace = true

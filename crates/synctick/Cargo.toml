@@ -1,0 +1,25 @@
+[package]
+name = "synctick"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+synctick-derive = { path = "../synctick-derive" }
+log = "0.4"
+arc-swap = "1"
+crossbeam-channel = "0.5"
+renet.workspace = true
+renet_netcode.workspace = true
+bincode.workspace = true
+serde.workspace = true
+thiserror = "2"
+[dev-dependencies]
+# Inspect Renet packet headers in loss/reordering regression tests.
+octets = "0.3"
+tempfile = "3"
+
+[lints]
+workspace = true

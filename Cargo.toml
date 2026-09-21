@@ -1,0 +1,59 @@
+[workspace]
+resolver = "3"
+members = ["crates/synctick", "crates/synctick-bevy", "crates/synctick-derive", "examples/wallet", "examples/power-garden"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+license = "MIT OR Apache-2.0"
+publish = false
+
+[workspace.dependencies]
+bevy = "0.18.1"
+renet = "2.0"
+renet_netcode = "2.0"
+bincode = { version = "2", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
+
+[workspace.lints.rust]
+unsafe_code = "deny"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+
+# Bevy idioms that clippy misreads as smells:
+#   - Systems routinely take many Query/Res/Commands params.
+#   - Query<(&A, &mut B), (With<C>, Without<D>)> is normal Bevy, not "complex".
+#   - Res<T> is a cheap smart pointer; passing by value is the API.
+too_many_arguments = "allow"
+type_complexity = "allow"
+needless_pass_by_value = "allow"
+
+# Pedantic lint that fires constantly in Rust modules with a natural name
+# hierarchy (e.g. `player::PlayerBundle`).
+module_name_repetitions = "allow"
+
+# Numeric + pointer discipline. Several of these overlap with pedantic; setting
+# them explicitly upgrades the severity and makes intent auditable.
+host_endian_bytes = "deny"           # to_ne_bytes / from_ne_bytes break cross-arch determinism
+cast_possible_truncation = "deny"
+cast_possible_wrap = "deny"
+cast_sign_loss = "deny"
+cast_precision_loss = "warn"
+cast_ptr_alignment = "deny"
+ptr_offset_with_cast = "deny"
+absurd_extreme_comparisons = "deny"
+
+# Compile workspace crates with light optimization so debug builds are
+# fast to rebuild but not molasses-slow at runtime.
+[profile.dev]
+opt-level = 1
+
+# Compile all dependencies (including Bevy itself) with full optimization
+# in dev builds. Dependencies rarely change, so the one-time cost buys
+# orders-of-magnitude faster frame times during iteration.
+[profile.dev.package."*"]
+opt-level = 3

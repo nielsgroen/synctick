@@ -1,0 +1,21 @@
+disallowed-methods = [
+    # f32 methods — delegate to platform libm, not portable.
+    { path = "f32::sin",   reason = "Use libm::sinf for cross-platform determinism" },
+    { path = "f32::cos",   reason = "Use libm::cosf for cross-platform determinism" },
+    { path = "f32::tan",   reason = "Use libm::tanf for cross-platform determinism" },
+    { path = "f32::atan2", reason = "Use libm::atan2f for cross-platform determinism" },
+    { path = "f32::sqrt",  reason = "Use libm::sqrtf for cross-platform determinism" },
+    { path = "f32::powf",  reason = "Use libm::powf for cross-platform determinism" },
+    { path = "f32::exp",   reason = "Use libm::expf for cross-platform determinism" },
+    { path = "f32::ln",    reason = "Use libm::logf for cross-platform determinism" },
+
+    # f64 methods — same hazard, different type.
+    { path = "f64::sin",   reason = "Use libm::sin for cross-platform determinism" },
+    { path = "f64::cos",   reason = "Use libm::cos for cross-platform determinism" },
+    { path = "f64::tan",   reason = "Use libm::tan for cross-platform determinism" },
+    { path = "f64::atan2", reason = "Use libm::atan2 for cross-platform determinism" },
+    { path = "f64::sqrt",  reason = "Use libm::sqrt for cross-platform determinism" },
+    { path = "f64::powf",  reason = "Use libm::pow for cross-platform determinism" },
+    { path = "f64::exp",   reason = "Use libm::exp for cross-platform determinism" },
+    { path = "f64::ln",    reason = "Use libm::log for cross-platform determinism" },
+]
