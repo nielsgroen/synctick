@@ -22,7 +22,10 @@ inherit `publish = false`. All three libraries start at version 0.1.0.
 4. Inspect `cargo package --list -p NAME` for each library. Each must include
    README.md, LICENSE, and NOTICE. Keep the package license files synchronized
    with the repository copies. Mark the changelog with the release date, commit
-   and push the release preparation, and require green CI.
+   and push the release preparation. In GitHub, select **Actions → CI → Run
+   workflow**, choose the release branch, and enable **release_checks**. Require
+   that run to pass on the release commit; ordinary push/PR CI omits Rustdoc,
+   MSRV, and package verification to reduce build minutes.
 
 ## Package verification before first publication
 
@@ -33,7 +36,7 @@ cargo package -p synctick-derive -p synctick -p synctick-bevy
 ```
 
 Cargo stages the selected unpublished dependencies in a temporary local registry
-for this check. CI runs this command as well. Use `--allow-dirty` only during
+for this check. The opt-in CI release checks run this command as well. Use `--allow-dirty` only during
 local preparation; release from a clean committed tree.
 
 ## First publication

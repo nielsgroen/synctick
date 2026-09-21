@@ -59,7 +59,9 @@ cargo clippy --workspace --all-targets --locked -- -D warnings
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
 ```
 
-CI runs workspace and aliased-consumer tests on Ubuntu only.
+CI uses one Ubuntu job for tests, formatting, and Clippy. New commits cancel
+superseded runs. Rustdoc, Rust 1.92, and package verification are opt-in release
+checks: select **Actions → CI → Run workflow → release_checks** before publishing.
 Successful local tests do not establish mixed-platform session determinism.
 
 ## Provenance and compatibility
