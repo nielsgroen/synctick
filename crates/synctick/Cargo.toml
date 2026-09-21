@@ -4,10 +4,16 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish.workspace = true
+publish = ["crates-io"]
+repository.workspace = true
+description = "Deterministic server-sequenced multiplayer sessions, recording, and replay for Rust games"
+readme = "README.md"
+documentation = "https://docs.rs/synctick"
+keywords = ["gamedev", "multiplayer", "deterministic", "networking"]
+categories = ["game-development", "network-programming"]
 
 [dependencies]
-synctick-derive = { path = "../synctick-derive" }
+synctick-derive = { path = "../synctick-derive", version = "=0.1.0" }
 log = "0.4"
 arc-swap = "1"
 crossbeam-channel = "0.5"

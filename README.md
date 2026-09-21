@@ -45,7 +45,8 @@ Use `host`, `dedicated_server`, `connect`, or `replay` through the public APIs.
 
 Renet is the sole transport. Late joining, reconnecting, prediction, rollback,
 and runtime tick-rate changes are outside the current scope. Session participant
-IDs are not authenticated accounts. Packages are not configured for publication.
+IDs are not authenticated accounts. The three library crates are configured for crates.io; examples remain unpublished.
+See the [release checklist](docs/RELEASING.md).
 
 ## Development
 
@@ -70,4 +71,9 @@ Historical development remains in that repository; it is not imported here.
 
 Package renaming does not change protocol or save formats, game IDs, or hashing.
 Both examples retain game compatibility version 2; version-1 recordings remain
-incompatible. The declared package license is MIT OR Apache-2.0.
+incompatible.
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
+See [NOTICE](NOTICE) for attribution.

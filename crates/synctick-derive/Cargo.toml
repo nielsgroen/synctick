@@ -4,7 +4,13 @@ version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true
-publish.workspace = true
+publish = ["crates-io"]
+repository.workspace = true
+description = "Wire and StableHash derive macros for Synctick"
+readme = "README.md"
+documentation = "https://docs.rs/synctick-derive"
+keywords = ["gamedev", "multiplayer", "deterministic", "networking"]
+categories = ["game-development", "network-programming"]
 
 [lib]
 proc-macro = true
