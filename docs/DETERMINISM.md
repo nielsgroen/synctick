@@ -24,7 +24,9 @@ and replay must produce identical authoritative state at the same tick.
 
 ## Stable hashes
 
-`StableHash` derives include all fields. The game selects state and ordering;
+`StableHash` derives include all fields unless marked `#[stable_hash(skip)]`.
+Skipped fields must be presentation data or deterministically recomputable caches;
+they contribute no bytes, and differences in them cannot trigger desync detection. The game selects state and ordering;
 `StateHasher` defines fixed FNV-1a 64-bit mixing and canonical representations.
 Integers are fixed-width little-endian; floats preserve exact bits; sequences
 and UTF-8 strings are length-prefixed. Enum variants have explicit byte tags.

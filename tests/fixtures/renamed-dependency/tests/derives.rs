@@ -55,3 +55,19 @@ fn derives_resolve_the_dependency_alias_for_structs_and_enum_payloads() {
         stable_hash(&(5u8, 42u64))
     );
 }
+
+#[test]
+fn skipped_cache_works_with_renamed_dependency() {
+    #[derive(StableHash)]
+    struct Cached<T> {
+        value: u64,
+        #[stable_hash(skip)]
+        cache: T,
+    }
+    let state = Cached {
+        value: 42,
+        cache: std::cell::Cell::new(1),
+    };
+    state.cache.set(2);
+    assert_eq!(stable_hash(&state), stable_hash(&42u64));
+}

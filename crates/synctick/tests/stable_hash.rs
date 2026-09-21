@@ -183,3 +183,108 @@ fn associated_field_bounds_do_not_require_container_to_hash() {
         reference(&[3, 1, 2])
     );
 }
+
+#[test]
+fn skipped_fields_contribute_no_bytes_or_bounds() {
+    // The cache deliberately has no StableHash implementation.
+    struct Cache;
+    #[derive(StableHash)]
+    struct State<T> {
+        first: u16,
+        #[stable_hash(skip)]
+        cache: T,
+        last: u8,
+    }
+    #[derive(StableHash)]
+    struct TupleCache<T>(u16, #[stable_hash(skip)] T, u8);
+    #[derive(StableHash)]
+    struct OnlyCache<T>(#[stable_hash(skip)] T);
+    #[derive(StableHash)]
+    struct AssociatedCache<T: FieldType> {
+        #[stable_hash(skip)]
+        cache: T::Field,
+    }
+    struct CacheType;
+    impl FieldType for CacheType {
+        type Field = std::cell::Cell<u8>;
+    }
+    let mut state = State {
+        first: 513,
+        cache: Cache,
+        last: 7,
+    };
+    let expected = reference(&[1, 2, 7]);
+    assert_eq!(stable_hash(&state), expected);
+    state.cache = Cache;
+    assert_eq!(stable_hash(&state), expected);
+    state.first += 1;
+    assert_ne!(stable_hash(&state), expected);
+    state.first -= 1;
+    state.last += 1;
+    assert_ne!(stable_hash(&state), expected);
+    assert_eq!(stable_hash(&TupleCache(513, Cache, 7)), expected);
+    assert_eq!(stable_hash(&OnlyCache(Cache)), reference(&[]));
+    let associated = AssociatedCache::<CacheType> {
+        cache: std::cell::Cell::new(1),
+    };
+    associated.cache.set(2);
+    assert_eq!(stable_hash(&associated), reference(&[]));
+}
+
+#[test]
+fn enum_skips_preserve_tags_and_payload_order() {
+    #[derive(StableHash)]
+    enum Cached<T> {
+        #[stable_hash(tag = 1)]
+        Named {
+            first: u16,
+            #[stable_hash(skip)]
+            cache: T,
+            last: u8,
+        },
+        #[stable_hash(tag = 2)]
+        Tuple(#[stable_hash(skip)] T, u16, #[stable_hash(skip)] T, u8),
+        #[stable_hash(tag = 3)]
+        Only(#[stable_hash(skip)] T),
+    }
+    let mut named = Cached::Named {
+        first: 513,
+        cache: std::cell::Cell::new(1),
+        last: 7,
+    };
+    assert_eq!(stable_hash(&named), reference(&[1, 1, 2, 7]));
+    if let Cached::Named { cache, .. } = &mut named {
+        cache.set(99);
+    }
+    assert_eq!(stable_hash(&named), reference(&[1, 1, 2, 7]));
+    assert_eq!(
+        stable_hash(&Cached::Tuple(
+            std::cell::Cell::new(1),
+            513,
+            std::cell::Cell::new(2),
+            7
+        )),
+        reference(&[2, 1, 2, 7])
+    );
+    assert_eq!(
+        stable_hash(&Cached::Only(std::cell::Cell::new(1))),
+        reference(&[3])
+    );
+}
+
+#[test]
+fn hash_skip_does_not_skip_wire_encoding() {
+    #[derive(Wire, StableHash)]
+    struct State {
+        value: u8,
+        #[stable_hash(skip)]
+        cache: u16,
+    }
+    let first = State { value: 7, cache: 1 };
+    let second = State { value: 7, cache: 2 };
+    assert_eq!(stable_hash(&first), stable_hash(&second));
+    assert_ne!(
+        synctick::codec::encode(&first).unwrap(),
+        synctick::codec::encode(&second).unwrap()
+    );
+}

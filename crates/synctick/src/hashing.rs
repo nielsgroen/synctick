@@ -20,16 +20,27 @@ pub use synctick_derive::StableHash;
 
 /// Feed all authoritative fields into a stable fingerprint.
 ///
-/// Derive for structs and enums; every field participates. Enum variants require
+/// Derive for structs and enums; every field participates by default. Enum variants require
 /// explicit unique byte tags, using `#[stable_hash(tag = N)]` or `#[wire(tag = N)]`
 /// (not both). The latter shares a tag with `Wire` without depending on encoding.
-/// Generic bounds apply to field types. There is no field-skipping attribute.
+/// Generic bounds apply only to hashed field types. Mark named or tuple fields
+/// (including enum payloads) with `#[stable_hash(skip)]` to omit them entirely.
+/// Skipped fields need not implement `StableHash`; enum tags still participate.
+/// This does not change `Wire` encoding. Only skip presentation data or caches
+/// deterministically recomputable from hashed state: differences in skipped data
+/// are invisible to desync detection. Changing the hashed representation requires
+/// a game compatibility version bump.
 ///
 /// ```
 /// use synctick::{StableHash, stable_hash};
 /// #[derive(StableHash)]
-/// struct State { tick: u64, balances: Vec<u64> }
-/// let state = State { tick: 1, balances: vec![10, 20] };
+/// struct State {
+///     tick: u64,
+///     balances: Vec<u64>,
+///     #[stable_hash(skip)]
+///     display_cache: std::cell::Cell<u64>,
+/// }
+/// let state = State { tick: 1, balances: vec![10, 20], display_cache: 0.into() };
 /// assert_eq!(stable_hash(&state), stable_hash(&(1u64, &[10u64, 20])));
 /// ```
 ///

@@ -15,7 +15,10 @@ pub fn derive_wire(input: TokenStream) -> TokenStream {
         .into()
 }
 
-/// Hash every field in declaration order, with explicit byte tags for enums.
+/// Hash fields in declaration order, with explicit byte tags for enums.
+///
+/// Fields marked `#[stable_hash(skip)]` contribute no bytes and need no hash bound.
+/// Only skip recomputable caches or presentation state, never authoritative state.
 /// Tags may use `stable_hash` or reuse a `wire` tag attribute, but not both.
 #[proc_macro_derive(StableHash, attributes(stable_hash, wire))]
 pub fn derive_stable_hash(input: TokenStream) -> TokenStream {

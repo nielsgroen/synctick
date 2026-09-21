@@ -197,7 +197,7 @@ rules, stable ordering, and complete state hashing.
 ## Stable state hashing
 
 Use `synctick::StableHash` on authoritative state types and call `stable_hash`
-from the simulation's `state_hash` hook. The derive includes every field, including
+from the simulation's `state_hash` hook. The derive includes every field by default, including
 nested structures and collections; adding an authoritative field automatically
 includes it. It does not inspect a Bevy World or select resources for the game.
 
@@ -219,11 +219,30 @@ impl State {
 }
 ```
 
-Keep presentation effects and recomputable caches outside the derived state.
+Keep presentation effects and recomputable caches outside the derived state, or
+explicitly exclude a field:
+
+```rust
+#[derive(synctick::StableHash)]
+struct StateWithCache {
+    balances: Vec<u64>,
+    #[stable_hash(skip)]
+    cached_total: std::cell::Cell<Option<u64>>,
+}
+```
+
+`#[stable_hash(skip)]` works on named and tuple fields in structs and enum
+payloads. It contributes no bytes and adds no `StableHash` bound on the field's
+type. Enum tags are always hashed. It does not affect `Wire` encoding.
+Only exclude presentation state or caches deterministically recomputable from
+hashed state; skipped differences are invisible to desync checks. Never skip
+independent state that affects future gameplay. Adding or removing `skip` on an
+existing hashed field changes the hash contract and requires a game compatibility
+version bump.
 Power Garden consumes and validates recorded `Initialization` through
 `TryFrom<Initialization> for PuzzleState`, moving dimensions and tiles into runtime
-state. It hashes `(tick, &state)`; its `Board` keeps connectivity separately. There is no skip
-attribute. Custom implementations and borrowed state projections remain possible.
+state. It hashes `(tick, &state)`; its `Board` keeps connectivity separately.
+Custom implementations and borrowed state projections remain possible.
 
 ECS games must select components and sort by stable logical IDs. For example,
 a game could derive `StableHash` on its `Body` component and compose its

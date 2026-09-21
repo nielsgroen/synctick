@@ -12,7 +12,7 @@ pub fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     let core = core_path()?;
     let name = &input.ident;
     let mut add_fields = |fields: &Fields| {
-        for field in fields {
+        for field in fields.iter().filter(|field| !is_skipped(field)) {
             let ty = &field.ty;
             generics
                 .make_where_clause()
@@ -23,12 +23,17 @@ pub fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     let body = match &input.data {
         Data::Struct(data) => {
             add_fields(&data.fields);
-            let members = data.fields.iter().enumerate().map(|(i, field)| {
-                field.ident.as_ref().map_or_else(
-                    || Member::Unnamed(Index::from(i)),
-                    |name| Member::Named(name.clone()),
-                )
-            });
+            let members = data
+                .fields
+                .iter()
+                .enumerate()
+                .filter(|(_, field)| !is_skipped(field))
+                .map(|(i, field)| {
+                    field.ident.as_ref().map_or_else(
+                        || Member::Unnamed(Index::from(i)),
+                        |name| Member::Named(name.clone()),
+                    )
+                });
             quote!(#(hasher.field(&self.#members);)*)
         }
         Data::Enum(data) => {
@@ -39,17 +44,34 @@ pub fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
                 let bindings: Vec<_> = (0..variant.fields.len())
                     .map(|i| format_ident!("__hash_field_{i}"))
                     .collect();
+                let patterns: Vec<_> = variant
+                    .fields
+                    .iter()
+                    .zip(&bindings)
+                    .map(|(field, binding)| {
+                        if is_skipped(field) {
+                            quote!(_)
+                        } else {
+                            quote!(#binding)
+                        }
+                    })
+                    .collect();
+                let hashed_bindings = variant
+                    .fields
+                    .iter()
+                    .zip(&bindings)
+                    .filter_map(|(field, binding)| (!is_skipped(field)).then_some(binding));
                 let pattern = match &variant.fields {
                     Fields::Unit => quote!(Self::#name),
-                    Fields::Unnamed(_) => quote!(Self::#name(#(#bindings),*)),
+                    Fields::Unnamed(_) => quote!(Self::#name(#(#patterns),*)),
                     Fields::Named(fields) => {
                         let members = fields.named.iter().map(|field| &field.ident);
-                        quote!(Self::#name { #(#members: #bindings),* })
+                        quote!(Self::#name { #(#members: #patterns),* })
                     }
                 };
                 arms.push(quote!(#pattern => {
                     hasher.field(&#tag);
-                    #(hasher.field(#bindings);)*
+                    #(hasher.field(#hashed_bindings);)*
                 }));
             }
             quote!(match self { #(#arms,)* })
@@ -71,12 +93,56 @@ pub fn expand(input: &DeriveInput) -> syn::Result<TokenStream> {
     })
 }
 
+/// Called only after validation: a field-level hash attribute can only be `skip`.
+fn is_skipped(field: &syn::Field) -> bool {
+    field
+        .attrs
+        .iter()
+        .any(|attr| attr.path().is_ident("stable_hash"))
+}
+
+fn validate_field(field: &syn::Field) -> syn::Result<()> {
+    reject_attributes(&field.attrs, &["wire"])?;
+    let mut skip = false;
+    for attr in &field.attrs {
+        if !attr.path().is_ident("stable_hash") {
+            continue;
+        }
+        if skip {
+            return Err(syn::Error::new_spanned(
+                attr,
+                "duplicate stable_hash skip attribute",
+            ));
+        }
+        attr.parse_nested_meta(|meta| {
+            if !meta.path.is_ident("skip") {
+                return Err(meta.error("expected skip on a field"));
+            }
+            if skip {
+                return Err(meta.error("duplicate stable_hash skip attribute"));
+            }
+            if meta.input.peek(syn::Token![=]) || meta.input.peek(syn::token::Paren) {
+                return Err(meta.error("skip takes no arguments"));
+            }
+            skip = true;
+            Ok(())
+        })?;
+        if !skip {
+            return Err(syn::Error::new_spanned(
+                attr,
+                "expected #[stable_hash(skip)]",
+            ));
+        }
+    }
+    Ok(())
+}
+
 /// Validate before resolving dependencies so schema diagnostics are self-contained.
 fn validate(input: &DeriveInput) -> syn::Result<Vec<u8>> {
     reject_attributes(&input.attrs, ATTRIBUTES)?;
     let validate_fields = |fields: &Fields| -> syn::Result<()> {
         for field in fields {
-            reject_attributes(&field.attrs, ATTRIBUTES)?;
+            validate_field(field)?;
         }
         Ok(())
     };
@@ -118,7 +184,7 @@ mod tests {
 
     #[test]
     fn rejects_ambiguous_and_unsupported_schemas() {
-        let cases: [(DeriveInput, &str); 11] = [
+        let cases: Vec<(DeriveInput, &str)> = vec![
             (
                 parse_quote!(
                     enum E {}
@@ -198,16 +264,89 @@ mod tests {
                 ),
                 "belong on enum variants",
             ),
+        ];
+        assert_rejected(cases);
+    }
+
+    #[test]
+    fn rejects_invalid_field_attributes() {
+        let cases: Vec<(DeriveInput, &str)> = vec![
+            (
+                parse_quote!(
+                    struct S {
+                        #[stable_hash(tag = 1)]
+                        value: u8,
+                    }
+                ),
+                "expected skip on a field",
+            ),
+            (
+                parse_quote!(
+                    struct S {
+                        #[stable_hash(skip, skip)]
+                        value: u8,
+                    }
+                ),
+                "duplicate stable_hash skip",
+            ),
             (
                 parse_quote!(
                     struct S {
                         #[stable_hash(skip)]
+                        #[stable_hash(skip)]
                         value: u8,
                     }
+                ),
+                "duplicate stable_hash skip",
+            ),
+            (
+                parse_quote!(
+                    struct S {
+                        #[stable_hash(skip = true)]
+                        value: u8,
+                    }
+                ),
+                "skip takes no arguments",
+            ),
+            (
+                parse_quote!(
+                    struct S {
+                        #[stable_hash(skip())]
+                        value: u8,
+                    }
+                ),
+                "skip takes no arguments",
+            ),
+            (
+                parse_quote!(
+                    struct S {
+                        #[stable_hash()]
+                        value: u8,
+                    }
+                ),
+                "expected #[stable_hash(skip)]",
+            ),
+            (
+                parse_quote!(
+                    struct S {
+                        #[stable_hash(unknown)]
+                        value: u8,
+                    }
+                ),
+                "expected skip on a field",
+            ),
+            (
+                parse_quote!(
+                    #[stable_hash(skip)]
+                    struct S;
                 ),
                 "belong on enum variants",
             ),
         ];
+        assert_rejected(cases);
+    }
+
+    fn assert_rejected(cases: Vec<(DeriveInput, &str)>) {
         for (input, expected) in cases {
             let error = expand(&input).unwrap_err().to_string();
             assert!(
