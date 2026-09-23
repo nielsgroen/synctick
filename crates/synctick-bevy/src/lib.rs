@@ -12,7 +12,8 @@ pub use session::{
     SessionState,
 };
 pub use simulation::{
-    BevyGame, BevySimulation, GameAdapter, SimStep, TickDuration, TickInputs, TickNumber,
+    BevyGame, BevySimulation, CheckpointGame, GameAdapter, SimStep, TickDuration, TickInputs,
+    TickNumber,
 };
 
 #[cfg(test)]

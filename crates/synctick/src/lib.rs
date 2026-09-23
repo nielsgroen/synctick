@@ -7,6 +7,7 @@ extern crate self as synctick;
 mod api;
 pub mod codec;
 pub mod hashing;
+pub mod managed;
 mod pacer;
 mod protocol;
 mod replay;

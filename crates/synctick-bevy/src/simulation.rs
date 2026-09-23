@@ -110,6 +110,42 @@ impl<G: BevyGame> Simulation<G::Command> for BevySimulation<G> {
     }
 }
 
+/// Optional checkpoint/lobby hooks for resumable sessions. All run on the worker.
+pub trait CheckpointGame: BevyGame {
+    /// # Errors
+    /// Returns checkpoint serialization failures.
+    fn checkpoint(&self, world: &mut World) -> SessionResult<Vec<u8>>;
+    /// # Errors
+    /// Reject invalid checkpoints without partial restoration.
+    fn restore(&self, world: &mut World, bytes: &[u8]) -> SessionResult;
+    /// # Errors
+    /// Return rejected configuration or fatal simulation failures.
+    fn configure(
+        &self,
+        world: &mut World,
+        lobby: &synctick::managed::Lobby,
+        command: Option<&[u8]>,
+        start: bool,
+    ) -> SessionResult;
+}
+impl<G: CheckpointGame> synctick::managed::CheckpointSimulation<G::Command> for BevySimulation<G> {
+    fn checkpoint(&mut self) -> SessionResult<Vec<u8>> {
+        self.game.checkpoint(self.app.world_mut())
+    }
+    fn restore(&mut self, bytes: &[u8]) -> SessionResult {
+        self.game.restore(self.app.world_mut(), bytes)
+    }
+    fn configure(
+        &mut self,
+        lobby: &synctick::managed::Lobby,
+        command: Option<&[u8]>,
+        start: bool,
+    ) -> SessionResult {
+        self.game
+            .configure(self.app.world_mut(), lobby, command, start)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

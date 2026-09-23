@@ -143,9 +143,9 @@ pub enum SubmitError {
 }
 
 pub struct CommandSender<C> {
-    sender: Sender<CommandPayload>,
-    control: SessionControl,
-    marker: PhantomData<fn(C)>,
+    pub(crate) sender: Sender<CommandPayload>,
+    pub(crate) control: SessionControl,
+    pub(crate) marker: PhantomData<fn(C)>,
 }
 impl<C> Clone for CommandSender<C> {
     fn clone(&self) -> Self {
@@ -170,6 +170,9 @@ impl<C: Wire> CommandSender<C> {
             _ => return Err(SubmitError::NotLive),
         }
         let payload = CommandPayload(codec::encode(command)?);
+        if let Some(managed) = &self.control.managed {
+            return managed.input(payload.0);
+        }
         self.sender.try_send(payload).map_err(|error| match error {
             TrySendError::Full(_) => SubmitError::Full,
             TrySendError::Disconnected(_) => SubmitError::Stopped,
@@ -180,8 +183,8 @@ impl<C: Wire> CommandSender<C> {
 /// Owns worker shutdown. Explicit `shutdown`/`join` returns the retained terminal
 /// result; `Drop` also cancels and joins, logging otherwise unobserved failures.
 pub struct SessionHandle<C> {
-    commands: CommandSender<C>,
-    worker: SessionWorker,
+    pub(crate) commands: CommandSender<C>,
+    pub(crate) worker: SessionWorker,
 }
 impl<C> SessionHandle<C> {
     #[must_use]

@@ -524,6 +524,8 @@ fn describe_status(status: &SessionStatus, snapshot: Option<&Snapshot>) -> Strin
         SessionStatus::Waiting { ready, expected } => {
             format!("Waiting for player: {ready}/{expected}")
         }
+        SessionStatus::Lobby => "Lobby - waiting for organizer".into(),
+        SessionStatus::Paused => "Paused - waiting for players".into(),
         SessionStatus::AwaitingStart => "Ready - waiting for host".into(),
         SessionStatus::Stopped => "Session stopped".into(),
         SessionStatus::Failed(error) => format!("Session failed: {error}"),

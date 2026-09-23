@@ -45,6 +45,8 @@ pub enum SessionStatus {
     Loading { phase: LoadingPhase, completed: u64 },
     Waiting { ready: usize, expected: usize },
     AwaitingStart,
+    Lobby,
+    Paused,
     Live,
     Stopped,
     Failed(String),
@@ -53,6 +55,7 @@ pub enum SessionStatus {
 /// Presentation status never enters deterministic simulation state.
 #[derive(Clone)]
 pub struct SessionControl {
+    pub(crate) managed: Option<Arc<crate::managed::Shared>>,
     cancelled: Arc<AtomicBool>,
     status: Arc<ArcSwap<SessionStatus>>,
 }
@@ -60,6 +63,7 @@ pub struct SessionControl {
 impl Default for SessionControl {
     fn default() -> Self {
         Self {
+            managed: None,
             cancelled: Arc::new(AtomicBool::new(false)),
             status: Arc::new(ArcSwap::from_pointee(SessionStatus::Connecting)),
         }
